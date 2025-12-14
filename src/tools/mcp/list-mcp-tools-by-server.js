@@ -38,7 +38,15 @@ export async function handleListMcpToolsByServer(server, args) {
             timeout: 60000, // Keep the increased timeout
         });
 
-        let tools = response.data; // Assuming response.data is an array of MCPTool objects
+        // Handle different response structures: array directly or object with tools property
+        let tools = response.data;
+        if (!Array.isArray(tools)) {
+            // If response.data is an object, try to extract the array
+            tools = tools?.tools || tools?.data || [];
+        }
+        if (!Array.isArray(tools)) {
+            throw new Error('Invalid response format: expected array of MCP tools');
+        }
 
         // Apply filtering if provided
         if (args?.filter) {

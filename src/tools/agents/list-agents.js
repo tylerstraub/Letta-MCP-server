@@ -12,7 +12,16 @@ export async function handleListAgents(server, args) {
 
         // Get the list of agents
         const response = await server.api.get('/agents/', { headers });
-        const agents = response.data;
+        // Handle different response structures: array directly or object with agents property
+        let agents = response.data;
+        if (!Array.isArray(agents)) {
+            // If response.data is an object, try to extract the array
+            agents = agents?.agents || agents?.data || [];
+        }
+        if (!Array.isArray(agents)) {
+            logger.error('Unexpected response structure from /agents/ endpoint:', response.data);
+            throw new Error('Invalid response format: expected array of agents');
+        }
 
         // Apply filter if provided
         let filteredAgents = agents;

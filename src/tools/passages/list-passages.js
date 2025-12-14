@@ -29,7 +29,15 @@ export async function handleListPassages(server, args) {
             headers,
             params,
         });
-        let passages = response.data || []; // Assuming response.data is an array of Passage objects
+        // Handle different response structures: array directly or object with passages property
+        let passages = response.data;
+        if (!Array.isArray(passages)) {
+            // If response.data is an object, try to extract the array
+            passages = passages?.passages || passages?.data || [];
+        }
+        if (!Array.isArray(passages)) {
+            throw new Error('Invalid response format: expected array of passages');
+        }
 
         // Optionally remove embeddings from the response
         const includeEmbeddings = args?.include_embeddings ?? false;

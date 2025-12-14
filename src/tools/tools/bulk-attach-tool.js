@@ -37,7 +37,12 @@ export async function handleBulkAttachToolToAgents(server, args) {
         if (tagFilter) listParams.tags = tagFilter; // Assuming API uses 'tags' (might need adjustment based on actual API)
 
         const listResponse = await server.api.get('/agents/', { headers, params: listParams });
-        agentsToProcess = listResponse.data; // Assuming response.data is an array of AgentState objects
+        // Handle different response structures: array directly or object with agents property
+        let agentsData = listResponse.data;
+        if (!Array.isArray(agentsData)) {
+            agentsData = agentsData?.agents || agentsData?.data || [];
+        }
+        agentsToProcess = Array.isArray(agentsData) ? agentsData : [];
 
         if (!Array.isArray(agentsToProcess) || agentsToProcess.length === 0) {
             return {

@@ -40,7 +40,15 @@ export async function handleListMemoryBlocks(server, args) {
             params: queryParams,
         });
 
+        // Handle different response structures: array directly or object with blocks property
         let blocks = blocksResponse.data;
+        if (!Array.isArray(blocks)) {
+            // If response.data is an object, try to extract the array
+            blocks = blocks?.blocks || blocks?.data || [];
+        }
+        if (!Array.isArray(blocks)) {
+            throw new Error('Invalid response format: expected array of memory blocks');
+        }
 
         // Apply text filter if provided (this is separate from the API's label/name filters)
         if (args && args.filter && typeof args.filter === 'string') {

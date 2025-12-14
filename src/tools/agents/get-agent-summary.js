@@ -48,7 +48,14 @@ export async function handleGetAgentSummary(server, args) {
         // Process Core Memory (optional, might fail if agent has none)
         let coreMemoryBlocks = [];
         if (coreMemoryRes.status === 'fulfilled' && coreMemoryRes.value.status === 200) {
-            coreMemoryBlocks = coreMemoryRes.value.data;
+            let memoryData = coreMemoryRes.value.data;
+            // Handle different response structures: array directly or object with blocks property
+            if (!Array.isArray(memoryData)) {
+                memoryData = memoryData?.blocks || memoryData?.data || [];
+            }
+            if (Array.isArray(memoryData)) {
+                coreMemoryBlocks = memoryData;
+            }
         } else {
             logger.warn(
                 `Could not fetch core memory for ${agentId}:`,
@@ -61,11 +68,18 @@ export async function handleGetAgentSummary(server, args) {
         // Process Tools (optional)
         let attachedTools = [];
         if (toolsRes.status === 'fulfilled' && toolsRes.value.status === 200) {
-            attachedTools = toolsRes.value.data.map((tool) => ({
-                id: tool.id,
-                name: tool.name,
-                type: tool.tool_type,
-            }));
+            let toolsData = toolsRes.value.data;
+            // Handle different response structures: array directly or object with tools property
+            if (!Array.isArray(toolsData)) {
+                toolsData = toolsData?.tools || toolsData?.data || [];
+            }
+            if (Array.isArray(toolsData)) {
+                attachedTools = toolsData.map((tool) => ({
+                    id: tool.id,
+                    name: tool.name,
+                    type: tool.tool_type,
+                }));
+            }
         } else {
             logger.warn(
                 `Could not fetch tools for ${agentId}:`,
@@ -76,10 +90,17 @@ export async function handleGetAgentSummary(server, args) {
         // Process Sources (optional)
         let attachedSources = [];
         if (sourcesRes.status === 'fulfilled' && sourcesRes.value.status === 200) {
-            attachedSources = sourcesRes.value.data.map((source) => ({
-                id: source.id,
-                name: source.name,
-            }));
+            let sourcesData = sourcesRes.value.data;
+            // Handle different response structures: array directly or object with sources property
+            if (!Array.isArray(sourcesData)) {
+                sourcesData = sourcesData?.sources || sourcesData?.data || [];
+            }
+            if (Array.isArray(sourcesData)) {
+                attachedSources = sourcesData.map((source) => ({
+                    id: source.id,
+                    name: source.name,
+                }));
+            }
         } else {
             logger.warn(
                 `Could not fetch sources for ${agentId}:`,
