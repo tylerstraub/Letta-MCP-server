@@ -19,6 +19,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Server runtime files
+.server.pid
+
 # IDE/Editor files
 .idea/
 .vscode/
