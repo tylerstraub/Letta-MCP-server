@@ -71,7 +71,22 @@ Write-Host "   Logs: logs/server.log"
 
 # Start server in background using Start-Process
 $logFile = Join-Path $ProjectDir "logs\server.log"
-$process = Start-Process -FilePath "node" -ArgumentList "src/index.js --http" -WorkingDirectory $ProjectDir -PassThru -NoNewWindow -RedirectStandardOutput $logFile -RedirectStandardError $logFile
+# PowerShell Start-Process limitation: can't redirect both stdout and stderr to same file
+# Solution: Redirect stdout to log, stderr to separate file, then merge stderr into log
+$errFile = "$logFile.err"
+$process = Start-Process -FilePath "node" -ArgumentList "src/index.js --http" -WorkingDirectory $ProjectDir -PassThru -WindowStyle Hidden -RedirectStandardOutput $logFile -RedirectStandardError $errFile
+# Merge stderr into main log file (run once after a brief delay)
+Start-Job -ScriptBlock {
+    param($errFile, $logFile)
+    Start-Sleep -Seconds 3
+    if (Test-Path $errFile) {
+        $errContent = Get-Content $errFile -ErrorAction SilentlyContinue
+        if ($errContent) {
+            Add-Content -Path $logFile -Value $errContent -ErrorAction SilentlyContinue
+        }
+        Remove-Item $errFile -ErrorAction SilentlyContinue
+    }
+} -ArgumentList $errFile, $logFile | Out-Null
 
 # Wait a moment for server to start
 Start-Sleep -Seconds 2
