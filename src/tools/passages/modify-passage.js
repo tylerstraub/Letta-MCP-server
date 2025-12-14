@@ -99,6 +99,16 @@ export async function handleModifyPassage(server, args) {
             });
         }
 
+        // Get the first (or only) modified passage for structuredContent
+        const modifiedPassage = Array.isArray(modifiedPassages) ? modifiedPassages[0] : modifiedPassages;
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: true,
+            passage_id: args.memory_id,
+            new_text: args.update_data.text || modifiedPassage?.text || '',
+        };
+
         return {
             content: [
                 {
@@ -108,6 +118,7 @@ export async function handleModifyPassage(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         logger.error('[modify_passage] Error:', error.response?.data || error.message);

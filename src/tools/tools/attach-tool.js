@@ -301,6 +301,24 @@ export async function handleAttachTool(server, args) {
         const overallSuccess =
             processingResults.every((r) => r.success) && attachmentResults.every((r) => r.success);
 
+        // Extract attached tool IDs and errors for structuredContent
+        const attachedToolIds = attachmentResults
+            .filter((r) => r.success)
+            .map((r) => r.tool_id);
+        const errors = [...processingResults, ...attachmentResults]
+            .filter((r) => !r.success)
+            .map((r) => ({
+                tool: r.tool_id || r.input || '',
+                error: r.error || r.message || 'Unknown error',
+            }));
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: overallSuccess,
+            attached_tools: attachedToolIds,
+            errors: errors,
+        };
+
         return {
             content: [
                 {
@@ -314,6 +332,7 @@ export async function handleAttachTool(server, args) {
                 },
             ],
             isError: !overallSuccess,
+            structuredContent: structuredContent,
         };
     } catch (error) {
         logger.error(`Unhandled error in handleAttachTool: ${error.message}`);

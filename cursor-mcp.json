@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "letta": {
+      "url": "http://localhost:3001/mcp",
+      "transport": "http",
+      "disabled": false,
+      "alwaysAllow": [
+        "list_agents",
+        "list_memory_blocks",
+        "list_agent_tools",
+        "retrieve_agent",
+        "get_agent_summary",
+        "list_llm_models",
+        "list_embedding_models",
+        "list_mcp_servers",
+        "list_prompts"
+      ],
+      "timeout": 300
+    }
+  }
+}
+

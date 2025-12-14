@@ -51,6 +51,14 @@ export async function handleImportAgent(server, args) {
 
         const importedAgentState = response.data; // Assuming response.data is the new AgentState object
 
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: true,
+            agent_id: importedAgentState.id || '',
+            name: importedAgentState.name || '',
+            warnings: importedAgentState.warnings || [],
+        };
+
         return {
             content: [
                 {
@@ -61,6 +69,7 @@ export async function handleImportAgent(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Handle potential 422 for validation errors, or other API/file errors

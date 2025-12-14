@@ -11,12 +11,26 @@ export async function handleListMcpToolsByServer(server, args) {
     }
 
     try {
-        const serverName = encodeURIComponent(args.mcp_server_name);
-        // Construct the relative API path
-        const api_path = `/tools/mcp/servers/${serverName}/tools`;
-
-        // Get headers using the server's built-in method
+        // First, get server list to lookup ID by name
         const headers = server.getApiHeaders();
+        const serversResponse = await server.api.get('/tools/mcp/servers', { headers });
+        const serversData = serversResponse.data || {};
+
+        // Find server by name (server name is the key in the response object)
+        const serverEntry = Object.entries(serversData).find(
+            ([name]) => name === args.mcp_server_name,
+        );
+
+        if (!serverEntry) {
+            return server.createErrorResponse(
+                `MCP Server not found: ${args.mcp_server_name}`,
+            );
+        }
+
+        // Use server name (which is the key/ID) in the tools endpoint
+        const serverId = serverEntry[0]; // The key is the server ID/name
+        const encodedServerId = encodeURIComponent(serverId);
+        const api_path = `/tools/mcp/servers/${encodedServerId}/tools`;
 
         // Use the server's configured api instance and get method
         const response = await server.api.get(api_path, {
@@ -45,6 +59,21 @@ export async function handleListMcpToolsByServer(server, args) {
         const totalPages = Math.ceil(totalTools / pageSize);
         const paginatedTools = tools.slice(startIndex, endIndex);
 
+        // Format tools to match output schema
+        const formattedTools = paginatedTools.map((tool) => ({
+            name: tool.name || '',
+            description: tool.description || '',
+            category: tool.category || '',
+            input_schema: tool.input_schema || {},
+        }));
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            server_name: args.mcp_server_name,
+            tools: formattedTools,
+            total: totalTools,
+        };
+
         return {
             content: [
                 {
@@ -64,6 +93,7 @@ export async function handleListMcpToolsByServer(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         logger.error('Full error:', error); // Keep detailed logging

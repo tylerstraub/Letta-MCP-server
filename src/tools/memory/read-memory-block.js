@@ -21,14 +21,27 @@ export async function handleReadMemoryBlock(server, args) {
             headers,
         });
 
+        const block = response.data;
+
+        // Map block data to structuredContent matching output schema exactly
+        // Critical: value must always be a string, never null
+        const structuredContent = {
+            id: block.id || '',
+            name: block.name || 'Unnamed Block',
+            label: block.label || '',
+            value: block.value || '', // Always string, never null
+            metadata: block.metadata || {},
+        };
+
         // Format the response
         return {
             content: [
                 {
                     type: 'text',
-                    text: JSON.stringify(response.data),
+                    text: JSON.stringify(block),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         server.createErrorResponse(error);

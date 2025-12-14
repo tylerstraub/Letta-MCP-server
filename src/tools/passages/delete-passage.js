@@ -17,6 +17,13 @@ export async function handleDeletePassage(server, args) {
         // Use the specific endpoint from the OpenAPI spec
         await server.api.delete(`/agents/${agentId}/archival-memory/${memoryId}`, { headers });
 
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: true,
+            passage_id: args.memory_id,
+            message: `Passage ${args.memory_id} deleted successfully`,
+        };
+
         // Successful deletion usually returns 200 or 204 with no body
         return {
             content: [
@@ -28,6 +35,7 @@ export async function handleDeletePassage(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Handle potential 404 if agent or passage not found, or other API errors

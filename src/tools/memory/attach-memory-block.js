@@ -43,6 +43,14 @@ export async function handleAttachMemoryBlock(server, args) {
         const agentData = agentInfoResponse.data;
         const agentName = agentData.name || 'Unknown';
 
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: true,
+            agent_id: args.agent_id,
+            block_id: args.block_id,
+            label: label,
+        };
+
         // Format the response
         return {
             content: [
@@ -57,6 +65,7 @@ export async function handleAttachMemoryBlock(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         server.createErrorResponse(error);

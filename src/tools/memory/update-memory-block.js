@@ -34,14 +34,25 @@ export async function handleUpdateMemoryBlock(server, args) {
             headers,
         });
 
+        const updatedBlock = response.data;
+        const updatedFields = Object.keys(updateData);
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: true,
+            block_id: args.block_id,
+            updated_fields: updatedFields,
+        };
+
         // Format the response
         return {
             content: [
                 {
                     type: 'text',
-                    text: JSON.stringify(response.data),
+                    text: JSON.stringify(updatedBlock),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         server.createErrorResponse(error);

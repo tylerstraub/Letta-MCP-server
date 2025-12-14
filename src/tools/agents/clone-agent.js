@@ -92,6 +92,14 @@ export async function handleCloneAgent(server, args) {
         await fs.unlink(tempFilePath);
         logger.info(`Cleaned up temporary file ${tempFilePath}.`);
 
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: true,
+            original_agent_id: sourceAgentId,
+            new_agent_id: importedAgentState.id || '',
+            new_agent_name: importedAgentState.name || newAgentName,
+        };
+
         return {
             content: [
                 {
@@ -101,6 +109,7 @@ export async function handleCloneAgent(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         logger.error('Error:', error.response?.data || error.message);

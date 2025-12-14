@@ -14,6 +14,18 @@ export async function handleRetrieveAgent(server, args) {
         const response = await server.api.get(`/agents/${agentId}`, { headers });
         const agentState = response.data; // Assuming response.data is the AgentState object
 
+        // Map agentState to structuredContent matching output schema exactly
+        const structuredContent = {
+            id: agentState.id || '',
+            name: agentState.name || '',
+            description: agentState.description || '',
+            created_at: agentState.created_at || '',
+            model: agentState.model || agentState.llm_config?.model || '',
+            embedding_model: agentState.embedding_model || agentState.embedding_config?.embedding_model || '',
+            memory: agentState.memory || {},
+            tools: agentState.tools || [],
+        };
+
         return {
             content: [
                 {
@@ -23,6 +35,7 @@ export async function handleRetrieveAgent(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Handle potential 404 if agent not found, or other API errors

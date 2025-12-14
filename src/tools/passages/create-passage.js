@@ -18,7 +18,7 @@ export async function handleCreatePassage(server, args) {
         const response = await server.api.post(`/agents/${agentId}/archival-memory`, payload, {
             headers,
         });
-        let createdPassages = response.data; // Assuming response.data is an array of created Passage objects
+        let createdPassages = response.data || []; // Assuming response.data is an array of created Passage objects
 
         // Optionally remove embeddings from the response
         const includeEmbeddings = args?.include_embeddings ?? false;
@@ -30,6 +30,18 @@ export async function handleCreatePassage(server, args) {
             });
         }
 
+        // Get the first (or only) created passage for structuredContent
+        const createdPassage = Array.isArray(createdPassages) ? createdPassages[0] : createdPassages;
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            id: createdPassage?.id || '',
+            text: createdPassage?.text || args.text,
+            embedding_model: createdPassage?.embedding_model || '',
+            created_at: createdPassage?.created_at || '',
+            metadata: createdPassage?.metadata || {},
+        };
+
         return {
             content: [
                 {
@@ -39,6 +51,7 @@ export async function handleCreatePassage(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Handle potential 404 if agent not found, 422 for validation, or other API errors

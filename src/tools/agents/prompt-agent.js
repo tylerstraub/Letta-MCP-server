@@ -40,6 +40,9 @@ export async function handlePromptAgent(server, args) {
 
         // Extract the response
         let responseText = '';
+        const extractedMessages = [];
+        let usage = {};
+
         try {
             // The response is in Server-Sent Events (SSE) format
             if (typeof response.data === 'string') {
@@ -60,7 +63,11 @@ export async function handlePromptAgent(server, args) {
                         if (eventData.message_type === 'assistant_message' && eventData.content) {
                             // This is the main response message
                             responseText = eventData.content;
-                            break;
+                            extractedMessages.push({
+                                role: 'assistant',
+                                text: eventData.content,
+                                tool_calls: eventData.tool_calls || [],
+                            });
                         } else if (
                             eventData.message_type === 'reasoning_message' &&
                             eventData.reasoning
@@ -70,6 +77,16 @@ export async function handlePromptAgent(server, args) {
                         } else if (eventData.delta && eventData.delta.content) {
                             // This is a streaming delta update
                             messages.push(eventData.delta.content);
+                        }
+
+                        // Extract usage information if available
+                        if (eventData.usage) {
+                            usage = {
+                                completion_tokens: eventData.usage.completion_tokens || 0,
+                                prompt_tokens: eventData.usage.prompt_tokens || 0,
+                                total_tokens: eventData.usage.total_tokens || 0,
+                                step_count: eventData.usage.step_count || 0,
+                            };
                         }
                     } catch (jsonError) {
                         logger.error('Error parsing SSE JSON:', jsonError);
@@ -81,20 +98,59 @@ export async function handlePromptAgent(server, args) {
                 // If we didn't find a specific assistant message, join all messages
                 if (!responseText && messages.length > 0) {
                     responseText = messages.join('\n');
+                    if (extractedMessages.length === 0) {
+                        extractedMessages.push({
+                            role: 'assistant',
+                            text: responseText,
+                            tool_calls: [],
+                        });
+                    }
                 }
 
                 // If we still don't have a response, use the raw data
                 if (!responseText) {
                     responseText = "Received response but couldn't extract message content";
+                    if (extractedMessages.length === 0) {
+                        extractedMessages.push({
+                            role: 'assistant',
+                            text: responseText,
+                            tool_calls: [],
+                        });
+                    }
                 }
             } else if (response.data) {
                 // Handle non-string response (unlikely with SSE)
                 responseText = JSON.stringify(response.data);
+                extractedMessages.push({
+                    role: 'assistant',
+                    text: responseText,
+                    tool_calls: [],
+                });
             }
         } catch (error) {
             logger.error('Error parsing response:', error);
             responseText = 'Error parsing agent response';
+            extractedMessages.push({
+                role: 'assistant',
+                text: responseText,
+                tool_calls: [],
+            });
         }
+
+        // Add user message to messages array
+        const messages = [
+            {
+                role: 'user',
+                text: args.message,
+            },
+            ...extractedMessages,
+        ];
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            messages: messages,
+            usage: Object.keys(usage).length > 0 ? usage : undefined,
+        };
 
         return {
             content: [
@@ -108,6 +164,7 @@ export async function handlePromptAgent(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         server.createErrorResponse(error);

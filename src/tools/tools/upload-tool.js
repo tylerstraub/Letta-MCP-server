@@ -69,6 +69,7 @@ export async function handleUploadTool(server, args) {
         const toolId = createResponse.data.id;
 
         // If agent_id is provided, attach the tool to the agent
+        const attachedToAgent = !!args.agent_id;
         if (args.agent_id) {
             // Attach tool to agent
             const attachUrl = `/agents/${args.agent_id}/tools/attach/${toolId}`;
@@ -77,6 +78,14 @@ export async function handleUploadTool(server, args) {
             // Get agent info
             const agentInfoResponse = await server.api.get(`/agents/${args.agent_id}`, { headers });
             const agentName = agentInfoResponse.data.name || 'Unknown';
+
+            // Construct structuredContent matching output schema
+            const structuredContent = {
+                tool_id: toolId,
+                name: args.name,
+                category: category,
+                attached_to_agent: attachedToAgent,
+            };
 
             return {
                 content: [
@@ -91,8 +100,17 @@ export async function handleUploadTool(server, args) {
                         }),
                     },
                 ],
+                structuredContent: structuredContent,
             };
         } else {
+            // Construct structuredContent matching output schema
+            const structuredContent = {
+                tool_id: toolId,
+                name: args.name,
+                category: category,
+                attached_to_agent: attachedToAgent,
+            };
+
             // Just return the created tool info
             return {
                 content: [
@@ -105,6 +123,7 @@ export async function handleUploadTool(server, args) {
                         }),
                     },
                 ],
+                structuredContent: structuredContent,
             };
         }
     } catch (error) {

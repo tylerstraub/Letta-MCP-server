@@ -7,18 +7,31 @@ export async function handleListLlmModels(server, _args) {
 
         // Use the specific endpoint from the OpenAPI spec
         const response = await server.api.get('/models/', { headers });
-        const models = response.data; // Assuming response.data is an array of LLMConfig objects
+        const models = response.data || []; // Assuming response.data is an array of LLMConfig objects
+
+        // Format models to match output schema
+        const formattedModels = models.map((model) => ({
+            name: model.name || model.id || '',
+            provider: model.provider || '',
+            context_window: model.context_window || model.max_tokens || 0,
+            supports_functions: model.supports_functions || false,
+        }));
+
+        const responseData = {
+            models: formattedModels,
+        };
 
         return {
             content: [
                 {
                     type: 'text',
                     text: JSON.stringify({
-                        model_count: models.length,
-                        models: models,
+                        model_count: formattedModels.length,
+                        models: formattedModels,
                     }),
                 },
             ],
+            structuredContent: responseData,
         };
     } catch (error) {
         server.createErrorResponse(error);

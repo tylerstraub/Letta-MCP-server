@@ -14,6 +14,13 @@ export async function handleDeleteAgent(server, args) {
         // Note: axios delete method typically doesn't have a body, config is the second arg
         await server.api.delete(`/agents/${agentId}`, { headers });
 
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: true,
+            agent_id: args.agent_id,
+            message: `Agent ${args.agent_id} deleted successfully`,
+        };
+
         // Successful deletion usually returns 200 or 204 with no body
         return {
             content: [
@@ -24,6 +31,7 @@ export async function handleDeleteAgent(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Handle potential 404 if agent not found, or other API errors

@@ -44,7 +44,8 @@ export async function handleCreateMemoryBlock(server, args) {
         // Create the memory block
         logger.info(`Creating memory block "${args.name}" with label "${args.label}"...`);
         const createResponse = await server.api.post('/blocks', blockData, { headers });
-        const blockId = createResponse.data.id;
+        const createdBlock = createResponse.data;
+        const blockId = createdBlock.id || '';
 
         // If agent_id is provided, attach the block to the agent
         if (args.agent_id) {
@@ -54,6 +55,15 @@ export async function handleCreateMemoryBlock(server, args) {
             // Get agent info
             const agentInfoResponse = await server.api.get(`/agents/${args.agent_id}`, { headers });
             const agentName = agentInfoResponse.data.name || 'Unknown';
+
+            // Construct structuredContent matching output schema
+            const structuredContent = {
+                id: blockId,
+                name: createdBlock.name || args.name,
+                label: createdBlock.label || args.label,
+                value: createdBlock.value || args.value,
+                metadata: createdBlock.metadata || metadata,
+            };
 
             return {
                 content: [
@@ -68,8 +78,18 @@ export async function handleCreateMemoryBlock(server, args) {
                         }),
                     },
                 ],
+                structuredContent: structuredContent,
             };
         } else {
+            // Construct structuredContent matching output schema
+            const structuredContent = {
+                id: blockId,
+                name: createdBlock.name || args.name,
+                label: createdBlock.label || args.label,
+                value: createdBlock.value || args.value,
+                metadata: createdBlock.metadata || metadata,
+            };
+
             // Just return the created block info
             return {
                 content: [
@@ -82,6 +102,7 @@ export async function handleCreateMemoryBlock(server, args) {
                         }),
                     },
                 ],
+                structuredContent: structuredContent,
             };
         }
     } catch (error) {

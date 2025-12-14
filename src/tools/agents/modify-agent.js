@@ -18,6 +18,16 @@ export async function handleModifyAgent(server, args) {
         const response = await server.api.patch(`/agents/${agentId}`, updatePayload, { headers });
         const updatedAgentState = response.data; // Assuming response.data is the updated AgentState object
 
+        // Extract updated fields from update_data
+        const updatedFields = Object.keys(args.update_data || {});
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: true,
+            agent_id: args.agent_id,
+            updated_fields: updatedFields,
+        };
+
         return {
             content: [
                 {
@@ -27,6 +37,7 @@ export async function handleModifyAgent(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Handle potential 404 if agent not found, 422 for validation errors, or other API errors

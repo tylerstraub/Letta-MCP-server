@@ -50,8 +50,17 @@ export class LettaServer {
             throw new Error('Missing required environment variable: LETTA_BASE_URL');
         }
 
-        // Initialize axios instance
-        this.apiBase = `${this.apiBase}/v1`;
+        // Remove trailing slash if present
+        this.apiBase = this.apiBase.replace(/\/$/, '');
+
+        // Append /v1 if not already present
+        if (!this.apiBase.endsWith('/v1')) {
+            this.apiBase = `${this.apiBase}/v1`;
+        }
+
+        // Log the constructed API base URL for debugging
+        this.logger.info(`Letta API Base URL: ${this.apiBase}`);
+
         this.api = axios.create({
             baseURL: this.apiBase,
             headers: {

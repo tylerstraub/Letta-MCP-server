@@ -7,18 +7,30 @@ export async function handleListEmbeddingModels(server, _args) {
 
         // Use the specific endpoint from the OpenAPI spec
         const response = await server.api.get('/models/embedding', { headers });
-        const models = response.data; // Assuming response.data is an array of EmbeddingConfig objects
+        const models = response.data || []; // Assuming response.data is an array of EmbeddingConfig objects
+
+        // Format models to match output schema
+        const formattedModels = models.map((model) => ({
+            name: model.name || model.id || '',
+            provider: model.provider || '',
+            dimensions: model.dimensions || 0,
+        }));
+
+        const responseData = {
+            models: formattedModels,
+        };
 
         return {
             content: [
                 {
                     type: 'text',
                     text: JSON.stringify({
-                        model_count: models.length,
-                        models: models,
+                        model_count: formattedModels.length,
+                        models: formattedModels,
                     }),
                 },
             ],
+            structuredContent: responseData,
         };
     } catch (error) {
         server.createErrorResponse(error);

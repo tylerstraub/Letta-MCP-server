@@ -116,6 +116,20 @@ export async function handleExportAgent(server, args) {
             resultPayload.base64_data = Buffer.from(agentJsonString).toString('base64');
         }
 
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: true,
+            file_path: absoluteOutputPath,
+            upload_url: xbackboneResult && !xbackboneResult.error ? xbackboneResult.url : undefined,
+            base64_content: returnBase64 ? Buffer.from(agentJsonString).toString('base64') : undefined,
+            agent_data: {
+                agent_id: agentId,
+                name: agentData.name || '',
+                version: agentData.version || '1.0',
+                exported_at: new Date().toISOString(),
+            },
+        };
+
         return {
             content: [
                 {
@@ -123,6 +137,7 @@ export async function handleExportAgent(server, args) {
                     text: JSON.stringify(resultPayload),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Handle potential 404 if agent not found, or other API errors

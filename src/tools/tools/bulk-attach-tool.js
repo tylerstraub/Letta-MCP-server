@@ -90,6 +90,23 @@ export async function handleBulkAttachToolToAgents(server, args) {
         const successCount = results.filter((r) => r.status === 'success').length;
         const errorCount = results.filter((r) => r.status === 'error').length;
 
+        // Format results to match output schema
+        const formattedResults = results.map((r) => ({
+            agent_id: r.agent_id || '',
+            agent_name: r.name || '',
+            success: r.status === 'success',
+            error: r.error || '',
+        }));
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            tool_id: toolId,
+            total_agents: agentsToProcess.length,
+            successful_attachments: successCount,
+            failed_attachments: errorCount,
+            results: formattedResults,
+        };
+
         return {
             content: [
                 {
@@ -104,6 +121,7 @@ export async function handleBulkAttachToolToAgents(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Handle errors during the list_agents call or unexpected issues

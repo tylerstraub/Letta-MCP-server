@@ -13,6 +13,20 @@ export async function handleListAgentTools(server, args) {
         const agentName = agentInfoResponse.data.name;
         const tools = agentInfoResponse.data.tools || [];
 
+        // Format tools to match output schema exactly
+        const formattedTools = tools.map((tool) => ({
+            id: tool.id || '',
+            name: tool.name || '',
+            description: tool.description || '',
+            source: tool.source || tool.tool_type || '',
+        }));
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            agent_id: args.agent_id,
+            tools: formattedTools,
+        };
+
         return {
             content: [
                 {
@@ -25,6 +39,7 @@ export async function handleListAgentTools(server, args) {
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         server.createErrorResponse(error);

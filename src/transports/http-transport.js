@@ -90,8 +90,29 @@ export async function runHTTP(server) {
         const transports = {};
 
         // Security: Validate Origin header to prevent DNS rebinding attacks
+        // In development, allow all localhost origins and null origins (for local clients like Cursor)
+        const isDevelopment = process.env.NODE_ENV !== 'production';
         app.use((req, res, next) => {
             const origin = req.headers.origin;
+            
+            // Allow requests with no origin (local clients, file:// protocol, etc.)
+            if (!origin) {
+                return next();
+            }
+
+            // In development, allow all localhost origins (any port)
+            if (isDevelopment) {
+                if (
+                    origin.startsWith('http://localhost') ||
+                    origin.startsWith('http://127.0.0.1') ||
+                    origin.startsWith('https://localhost') ||
+                    origin.startsWith('https://127.0.0.1')
+                ) {
+                    return next();
+                }
+            }
+
+            // Production: strict origin checking
             const allowedOrigins = [
                 'http://localhost',
                 'http://127.0.0.1',
@@ -114,16 +135,45 @@ export async function runHTTP(server) {
             next();
         });
 
-        // Middleware
+        // Middleware - CORS configuration
+        // In development, allow all localhost origins; in production, use strict list
         app.use(
             cors({
-                origin: [
-                    'http://localhost',
-                    'http://127.0.0.1',
-                    'http://192.168.50.90',
-                    'https://letta.oculair.ca',
-                    'https://letta2.oculair.ca',
-                ],
+                origin: isDevelopment
+                    ? (origin, callback) => {
+                          // Allow requests with no origin
+                          if (!origin) {
+                              return callback(null, true);
+                          }
+                          // Allow all localhost origins in development
+                          if (
+                              origin.startsWith('http://localhost') ||
+                              origin.startsWith('http://127.0.0.1') ||
+                              origin.startsWith('https://localhost') ||
+                              origin.startsWith('https://127.0.0.1')
+                          ) {
+                              return callback(null, true);
+                          }
+                          // Fallback to strict list
+                          const allowedOrigins = [
+                              'http://localhost',
+                              'http://127.0.0.1',
+                              'http://192.168.50.90',
+                              'https://letta.oculair.ca',
+                              'https://letta2.oculair.ca',
+                          ];
+                          if (allowedOrigins.some((allowed) => origin.startsWith(allowed))) {
+                              return callback(null, true);
+                          }
+                          callback(new Error('Not allowed by CORS'));
+                      }
+                    : [
+                          'http://localhost',
+                          'http://127.0.0.1',
+                          'http://192.168.50.90',
+                          'https://letta.oculair.ca',
+                          'https://letta2.oculair.ca',
+                      ],
                 credentials: true,
             }),
         );

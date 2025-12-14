@@ -104,14 +104,14 @@ export async function handleListMemoryBlocks(server, args) {
             return result;
         });
 
-        // Format the response
-        const response = {
+        // Format the response for text output
+        const textResponse = {
             blocks: formattedBlocks,
         };
 
         // Only include pagination if there are more blocks than pageSize
         if (totalBlocks > pageSize) {
-            response.pagination = {
+            textResponse.pagination = {
                 page: page,
                 pageSize: pageSize,
                 totalBlocks: totalBlocks,
@@ -119,13 +119,29 @@ export async function handleListMemoryBlocks(server, args) {
             };
         }
 
+        // Format structured content to match output schema
+        const structuredContent = {
+            blocks: formattedBlocks.map((block) => ({
+                id: block.id,
+                name: block.name,
+                label: block.label,
+                value: block.value || '',
+                is_template: block.metadata?.is_template || false,
+                metadata: block.metadata || {},
+            })),
+            total: totalBlocks,
+            page: page,
+            pageSize: pageSize,
+        };
+
         return {
             content: [
                 {
                     type: 'text',
-                    text: JSON.stringify(response),
+                    text: JSON.stringify(textResponse),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         server.createErrorResponse(error);

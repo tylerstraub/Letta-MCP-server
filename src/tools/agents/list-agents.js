@@ -29,8 +29,15 @@ export async function handleListAgents(server, args) {
         const summarizedAgents = filteredAgents.map((agent) => ({
             id: agent.id,
             name: agent.name,
-            description: agent.description,
+            description: agent.description || '',
+            created_at: agent.created_at || '',
+            model: agent.model || '',
+            embedding_model: agent.embedding_model || '',
         }));
+
+        const responseData = {
+            agents: summarizedAgents,
+        };
 
         return {
             content: [
@@ -38,15 +45,20 @@ export async function handleListAgents(server, args) {
                     type: 'text',
                     text: JSON.stringify({
                         count: summarizedAgents.length,
-                        agents: summarizedAgents, // Use summarized list
+                        agents: summarizedAgents,
                     }),
                 },
             ],
+            structuredContent: responseData,
         };
     } catch (error) {
+        const fullUrl = `${server.apiBase}/agents/`;
         logger.error('Error in list_agents:', error.message);
         logger.error('API Base URL:', server.apiBase);
-        logger.error('Full error:', error.response?.data || error);
+        logger.error('Full URL attempted:', fullUrl);
+        logger.error('Response status:', error.response?.status);
+        logger.error('Response data:', error.response?.data || 'No response data');
+        logger.error('Full error:', error);
         server.createErrorResponse(error);
     }
 }

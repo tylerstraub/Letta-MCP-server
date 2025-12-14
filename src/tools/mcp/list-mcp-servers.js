@@ -7,18 +7,31 @@ export async function handleListMcpServers(server, _args) {
 
         // Use the specific endpoint from the OpenAPI spec
         const response = await server.api.get('/tools/mcp/servers', { headers });
-        const servers = response.data; // Assuming response.data is an object mapping server names to configs
+        const serversData = response.data || {}; // Assuming response.data is an object mapping server names to configs
+
+        // Convert object to array format matching output schema
+        const serversArray = Object.entries(serversData).map(([name, config]) => ({
+            name: name,
+            url: config.url || '',
+            transport: config.transport || 'http',
+            status: config.status || 'connected',
+        }));
+
+        const responseData = {
+            servers: serversArray,
+        };
 
         return {
             content: [
                 {
                     type: 'text',
                     text: JSON.stringify({
-                        server_count: Object.keys(servers).length,
-                        servers: servers,
+                        server_count: serversArray.length,
+                        servers: serversArray,
                     }),
                 },
             ],
+            structuredContent: responseData,
         };
     } catch (error) {
         server.createErrorResponse(error);

@@ -124,6 +124,15 @@ export async function handleAddMcpToolToLetta(server, args) {
             logger.error(`${attachMessage} Error:`, attachError);
         }
 
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            success: attachSuccess,
+            tool_name: lettaToolName,
+            tool_id: lettaToolId,
+            attached_to_agent: attachSuccess,
+            agent_id: agent_id,
+        };
+
         // Return combined result
         return {
             content: [
@@ -141,6 +150,7 @@ export async function handleAddMcpToolToLetta(server, args) {
                 },
             ],
             isError: !attachSuccess, // Consider it an error if attachment failed
+            structuredContent: structuredContent,
         };
     } catch (error) {
         logger.error(`Error during MCP tool registration or attachment: ${error.message}`);

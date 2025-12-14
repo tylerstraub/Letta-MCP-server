@@ -48,11 +48,7 @@ export async function handleGetAgentSummary(server, args) {
         // Process Core Memory (optional, might fail if agent has none)
         let coreMemoryBlocks = [];
         if (coreMemoryRes.status === 'fulfilled' && coreMemoryRes.value.status === 200) {
-            coreMemoryBlocks = coreMemoryRes.value.data.map((block) => ({
-                label: block.label,
-                value_snippet:
-                    block.value.substring(0, 100) + (block.value.length > 100 ? '...' : ''),
-            }));
+            coreMemoryBlocks = coreMemoryRes.value.data;
         } else {
             logger.warn(
                 `Could not fetch core memory for ${agentId}:`,
@@ -91,24 +87,74 @@ export async function handleGetAgentSummary(server, args) {
             );
         }
 
-        // Construct the summary
+        // Extract persona and human from core memory blocks
+        const personaBlock = coreMemoryBlocks.find((b) => b.label === 'persona');
+        const humanBlock = coreMemoryBlocks.find((b) => b.label === 'human');
+
+        // Get archival memory size (fetch passages count)
+        let archivalMemorySize = 0;
+        try {
+            const passagesRes = await server.api.get(
+                `/agents/${encodedAgentId}/archival-memory`,
+                { headers },
+            );
+            if (passagesRes.status === 200 && Array.isArray(passagesRes.data)) {
+                archivalMemorySize = passagesRes.data.length;
+            }
+        } catch (error) {
+            // Archival memory might not exist, use 0
+            logger.debug(`Could not fetch archival memory size for ${agentId}:`, error.message);
+        }
+
+        // Extract model from agent state
+        const model =
+            agentState.llm_config?.model ||
+            agentState.llm_config?.handle ||
+            agentState.model ||
+            '';
+
+        // Format tools as array of strings (tool names/IDs)
+        const toolsArray = attachedTools.map((tool) => tool.name || tool.id || '');
+
+        // Construct the summary for text content (backward compatibility)
         const summary = {
             agent_id: agentState.id,
             name: agentState.name,
             description: agentState.description,
             system_prompt_snippet:
-                agentState.system.substring(0, 200) + (agentState.system.length > 200 ? '...' : ''),
+                agentState.system?.substring(0, 200) + (agentState.system?.length > 200 ? '...' : '') || '',
             llm_config:
                 agentState.llm_config?.handle ||
                 `${agentState.llm_config?.model_endpoint_type}/${agentState.llm_config?.model}`,
             embedding_config:
                 agentState.embedding_config?.handle ||
                 `${agentState.embedding_config?.embedding_endpoint_type}/${agentState.embedding_config?.embedding_model}`,
-            core_memory_blocks: coreMemoryBlocks,
+            core_memory_blocks: coreMemoryBlocks.map((block) => ({
+                label: block.label,
+                value_snippet:
+                    block.value?.substring(0, 100) + (block.value?.length > 100 ? '...' : '') || '',
+            })),
             attached_tools_count: attachedTools.length,
             attached_tools: attachedTools,
             attached_sources_count: attachedSources.length,
             attached_sources: attachedSources,
+        };
+
+        // Construct structuredContent matching output schema exactly
+        const structuredContent = {
+            agent_id: agentState.id || '',
+            name: agentState.name || '',
+            description: agentState.description || '',
+            model: model,
+            memory_summary: {
+                core_memory: {
+                    persona: personaBlock?.value || '',
+                    human: humanBlock?.value || '',
+                },
+                archival_memory_size: archivalMemorySize,
+            },
+            tools: toolsArray,
+            last_activity: agentState.last_activity || '',
         };
 
         return {
@@ -118,6 +164,7 @@ export async function handleGetAgentSummary(server, args) {
                     text: JSON.stringify(summary),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Catch any unexpected errors during processing

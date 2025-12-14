@@ -29,7 +29,7 @@ export async function handleListPassages(server, args) {
             headers,
             params,
         });
-        let passages = response.data; // Assuming response.data is an array of Passage objects
+        let passages = response.data || []; // Assuming response.data is an array of Passage objects
 
         // Optionally remove embeddings from the response
         const includeEmbeddings = args?.include_embeddings ?? false;
@@ -41,15 +41,35 @@ export async function handleListPassages(server, args) {
             });
         }
 
+        // Format passages to match output schema
+        const formattedPassages = passages.map((passage) => ({
+            id: passage.id || '',
+            text: passage.text || '',
+            created_at: passage.created_at || '',
+            metadata: passage.metadata || {},
+        }));
+
+        // Calculate has_more based on limit
+        const limit = args.limit;
+        const has_more = limit ? formattedPassages.length === limit : false;
+
+        // Construct structuredContent matching output schema
+        const structuredContent = {
+            passages: formattedPassages,
+            total: formattedPassages.length,
+            has_more: has_more,
+        };
+
         return {
             content: [
                 {
                     type: 'text',
                     text: JSON.stringify({
-                        passages: passages,
+                        passages: formattedPassages,
                     }),
                 },
             ],
+            structuredContent: structuredContent,
         };
     } catch (error) {
         // Handle potential 404 if agent not found, or other API errors
